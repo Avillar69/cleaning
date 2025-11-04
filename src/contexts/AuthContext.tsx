@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -47,19 +47,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { error };
+    if (!isSupabaseConfigured()) {
+      return { 
+        error: { 
+          message: 'Error de configuración: Las credenciales de Supabase no están configuradas. Por favor, crea un archivo .env con VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY. Consulta el README.md para más información.' 
+        } 
+      };
+    }
+    
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      return { error };
+    } catch (err: any) {
+      // Detectar errores de red
+      if (err?.message?.includes('Failed to fetch') || err?.message?.includes('ERR_NAME_NOT_RESOLVED')) {
+        return { 
+          error: { 
+            message: 'Error de conexión: No se pudo conectar con Supabase. Verifica que las credenciales en el archivo .env sean correctas y que el servidor de desarrollo se haya reiniciado después de crear/actualizar el archivo .env.' 
+          } 
+        };
+      }
+      return { error: err };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    if (!isSupabaseConfigured()) {
+      return { 
+        error: { 
+          message: 'Error de configuración: Las credenciales de Supabase no están configuradas. Por favor, crea un archivo .env con VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY. Consulta el README.md para más información.' 
+        } 
+      };
+    }
+    
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (err: any) {
+      // Detectar errores de red
+      if (err?.message?.includes('Failed to fetch') || err?.message?.includes('ERR_NAME_NOT_RESOLVED')) {
+        return { 
+          error: { 
+            message: 'Error de conexión: No se pudo conectar con Supabase. Verifica que las credenciales en el archivo .env sean correctas y que el servidor de desarrollo se haya reiniciado después de crear/actualizar el archivo .env.' 
+          } 
+        };
+      }
+      return { error: err };
+    }
   };
 
   const signOut = async () => {
